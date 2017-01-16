@@ -15,6 +15,15 @@
 -->
 <resources>
 
+    <string name="hidden_title">Verborgen</string>
+
+    <string name="battery_meter_type_icon_portrait_title">Akku Hochformat</string>
+    <string name="battery_meter_type_icon_landscape_left_title">Akku Querformat links</string>
+    <string name="battery_meter_type_icon_landscape_right_title">Akku Querformat rechts</string>
+    <string name="battery_meter_type_circle_title">Kreis</string>
+    <string name="battery_meter_type_arcs_title">Bögen</string>
+    <string name="battery_meter_type_text_only_title">Nur Text</string>
+
     <string name="qs_panel_rows_columns_1_title">1</string>
     <string name="qs_panel_rows_columns_2_title">2</string>
     <string name="qs_panel_rows_columns_3_title">3</string>
