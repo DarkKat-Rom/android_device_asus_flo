@@ -15,10 +15,10 @@
 -->
 <resources>
 
-    <string name="qs_panel_rows_columns_1_title">1</string>
-    <string name="qs_panel_rows_columns_2_title">2</string>
-    <string name="qs_panel_rows_columns_3_title">3</string>
-    <string name="qs_panel_rows_columns_4_title">4</string>
-    <string name="qs_panel_rows_columns_5_title">5</string>
-    <string name="qs_panel_rows_columns_6_title">6</string>
+    <string name="qs_rows_columns_1_title">1</string>
+    <string name="qs_rows_columns_2_title">2</string>
+    <string name="qs_rows_columns_3_title">3</string>
+    <string name="qs_rows_columns_4_title">4</string>
+    <string name="qs_rows_columns_5_title">5</string>
+    <string name="qs_rows_columns_6_title">6</string>
 </resources>

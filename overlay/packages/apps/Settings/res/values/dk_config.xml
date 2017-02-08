@@ -15,6 +15,6 @@
 -->
 <resources>
 
-    <integer name="config_qs_panel_num_rows_landscape_default">3</integer>
-    <integer name="config_qs_panel_num_columns_landscape_default">3</integer>
+    <integer name="config_qs_num_rows_landscape_default">3</integer>
+    <integer name="config_qs_num_columns_landscape_default">3</integer>
 </resources>
