@@ -160,3 +160,4 @@
 /sys/devices/platform/wcnss_wlan.0/serial_number                                  u:object_r:sysfs_mac_serial:s0
 /sys/devices/platform/wcnss_wlan.0/wcnss_mac_addr                                 u:object_r:sysfs_mac_address:s0
 
+/sys/devices/i2c-0/0-0055/power_supply/battery/capacity   u:object_r:sysfs_batteryinfo:s0
