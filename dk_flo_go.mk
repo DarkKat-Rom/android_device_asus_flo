@@ -1,5 +1,6 @@
 #
-# Copyright 2012 The Android Open Source Project
+# Copyright 2013 The Android Open-Source Project
+# Copyright (C) 2018 DarkKat
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,7 +14,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-
 # Sample: This is where we'd set a backup provider if we had one
 # $(call inherit-product, device/sample/products/backup_overlay.mk)
 
@@ -24,7 +24,7 @@ $(call inherit-product, $(SRC_TARGET_DIR)/product/aosp_base.mk)
 $(call inherit-product, build/target/product/go_defaults_common.mk)
 
 # Inherit from the darkkat vendor common configuration
-$(call inherit-product, vendor/dk/config/common.mk)
+$(call inherit-product, vendor/dk/config/common_go.mk)
 
 PRODUCT_NAME := dk_flo_go
 PRODUCT_DEVICE := flo
@@ -33,12 +33,6 @@ PRODUCT_MODEL := Nexus 7 WIFI
 PRODUCT_MANUFACTURER := asus
 PRODUCT_RESTRICT_VENDOR_FILES := false
 
-PRODUCT_BUILD_PROP_OVERRIDES += \
-    PRODUCT_NAME=razor \
-    BUILD_FINGERPRINT=google/razor/flo:6.0.1/MOB30X/3036618:user/release-keys \
-    PRIVATE_BUILD_DESC="razor-user 6.0.1 MOB30X 3036618 release-keys"
-
 # Inherit from hardware-specific part of the product configuration
 $(call inherit-product, device/asus/flo/device.mk)
 $(call inherit-product-if-exists, vendor/asus/flo/flo-vendor.mk)
-#$(call inherit-product-if-exists, vendor/qcom/proprietary/common/config/device-vendor.mk)
