@@ -37,10 +37,12 @@ extern "C" {
 using namespace android;
 
 namespace qcamera {
+
+class QCamera3Channel;
+
     typedef enum {
         INVALID,
         VALID,
-        RECONFIGURE,
     } stream_status_t;
 
     typedef struct {
@@ -68,6 +70,7 @@ namespace qcamera {
         camera3_stream_buffer_set_t buffer_set;
         stream_status_t status;
         int registered;
+        QCamera3Channel *channel;
     } stream_info_t;
 
     typedef struct {
@@ -76,5 +79,6 @@ namespace qcamera {
     } metadata_response_t;
 
 };//namespace qcamera
+
 
 #endif

@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are
@@ -262,6 +262,7 @@ static void mm_stream_dispatch_app_data(mm_camera_cmdcb_t *cmd_cb,
     mm_stream_t * my_obj = (mm_stream_t *)user_data;
     mm_camera_buf_info_t* buf_info = NULL;
     mm_camera_super_buf_t super_buf;
+    mm_camera_cmd_thread_name("mm_cam_stream");
 
     if (NULL == my_obj) {
         return;
@@ -410,7 +411,7 @@ int32_t mm_stream_fsm_inited(mm_stream_t *my_obj,
                  mm_camera_util_get_dev_name(my_obj->ch_obj->cam_obj->my_hdl));
 
         my_obj->fd = open(dev_name, O_RDWR | O_NONBLOCK);
-        if (my_obj->fd <= 0) {
+        if (my_obj->fd < 0) {
             CDBG_ERROR("%s: open dev returned %d\n", __func__, my_obj->fd);
             rc = -1;
             break;
@@ -423,7 +424,7 @@ int32_t mm_stream_fsm_inited(mm_stream_t *my_obj,
             /* failed setting ext_mode
              * close fd */
             close(my_obj->fd);
-            my_obj->fd = 0;
+            my_obj->fd = -1;
             break;
         }
         break;
@@ -844,7 +845,7 @@ int32_t mm_stream_release(mm_stream_t *my_obj)
          __func__, my_obj->my_hdl, my_obj->fd, my_obj->state);
 
     /* close fd */
-    if(my_obj->fd > 0)
+    if(my_obj->fd >= 0)
     {
         close(my_obj->fd);
     }
@@ -855,6 +856,7 @@ int32_t mm_stream_release(mm_stream_t *my_obj)
 
     /* reset stream obj */
     memset(my_obj, 0, sizeof(mm_stream_t));
+    my_obj->fd = -1;
 
     return 0;
 }
@@ -910,7 +912,17 @@ int32_t mm_stream_streamoff(mm_stream_t *my_obj)
          __func__, my_obj->my_hdl, my_obj->fd, my_obj->state);
 
     /* step1: remove fd from data poll thread */
-    mm_camera_poll_thread_del_poll_fd(&my_obj->ch_obj->poll_thread[0], my_obj->my_hdl, mm_camera_sync_call);
+    rc = mm_camera_poll_thread_del_poll_fd(&my_obj->ch_obj->poll_thread[0],
+            my_obj->my_hdl, mm_camera_sync_call);
+    if (rc < 0) {
+        /* The error might be due to async update. In this case
+         * wait for all updates to complete before proceeding. */
+        rc = mm_camera_poll_thread_commit_updates(&my_obj->ch_obj->poll_thread[0]);
+        if (rc < 0) {
+            CDBG_ERROR("%s: Poll sync failed %d",
+                 __func__, rc);
+        }
+    }
 
     /* step2: stream off */
     rc = ioctl(my_obj->fd, VIDIOC_STREAMOFF, &buf_type);
@@ -1170,7 +1182,7 @@ int32_t mm_stream_qbuf(mm_stream_t *my_obj, mm_camera_buf_def_t *buf)
                 mm_camera_async_call);
         CDBG_HIGH("%s: Started poll on stream %p type :%d", __func__, my_obj,my_obj->stream_info->stream_type);
         if (rc < 0) {
-            ALOGE("%s: add poll fd error", __func__);
+            CDBG_ERROR("%s: add poll fd error", __func__);
             return rc;
         }
     }
@@ -1401,7 +1413,6 @@ int32_t mm_stream_init_bufs(mm_stream_t * my_obj)
 {
     int32_t i, rc = 0;
     uint8_t *reg_flags = NULL;
-    mm_camera_map_unmap_ops_tbl_t ops_tbl;
     CDBG("%s: E, my_handle = 0x%x, fd = %d, state = %d",
          __func__, my_obj->my_hdl, my_obj->fd, my_obj->state);
 
@@ -1410,15 +1421,15 @@ int32_t mm_stream_init_bufs(mm_stream_t * my_obj)
         mm_stream_deinit_bufs(my_obj);
     }
 
-    ops_tbl.map_ops = mm_stream_map_buf_ops;
-    ops_tbl.unmap_ops = mm_stream_unmap_buf_ops;
-    ops_tbl.userdata = my_obj;
+    my_obj->map_ops.map_ops = mm_stream_map_buf_ops;
+    my_obj->map_ops.unmap_ops = mm_stream_unmap_buf_ops;
+    my_obj->map_ops.userdata = my_obj;
 
     rc = my_obj->mem_vtbl.get_bufs(&my_obj->frame_offset,
                                    &my_obj->buf_num,
                                    &reg_flags,
                                    &my_obj->buf,
-                                   &ops_tbl,
+                                   &my_obj->map_ops,
                                    my_obj->mem_vtbl.user_data);
 
     if (0 != rc) {
@@ -1518,12 +1529,14 @@ int32_t mm_stream_reg_buf(mm_stream_t * my_obj)
     }
 
     pthread_mutex_lock(&my_obj->buf_lock);
+    my_obj->queued_buffer_count = 0;
     for(i = 0; i < my_obj->buf_num; i++){
         /* check if need to qbuf initially */
         if (my_obj->buf_status[i].initial_reg_flag) {
             rc = mm_stream_qbuf(my_obj, &my_obj->buf[i]);
             if (rc != 0) {
-                CDBG_ERROR("%s: VIDIOC_QBUF rc = %d\n", __func__, rc);
+                CDBG_ERROR("%s: VIDIOC_QBUF rc = %d, errno is %s\n",
+                        __func__, rc, strerror(errno));
                 break;
             }
             my_obj->buf_status[i].buf_refcnt = 0;
@@ -2515,8 +2528,8 @@ int32_t mm_stream_buf_done(mm_stream_t * my_obj,
             CDBG("<DEBUG> : Buf done for buffer:%d, stream:%d", frame->buf_idx, frame->stream_type);
             rc = mm_stream_qbuf(my_obj, frame);
             if(rc < 0) {
-                CDBG_ERROR("%s: mm_camera_stream_qbuf(idx=%d) err=%d\n",
-                           __func__, frame->buf_idx, rc);
+                CDBG_ERROR("%s: mm_camera_stream_qbuf(idx=%d) errno=%d, %s\n",
+                           __func__, frame->buf_idx, errno, strerror(errno));
             } else {
                 my_obj->buf_status[frame->buf_idx].in_kernel = 1;
             }

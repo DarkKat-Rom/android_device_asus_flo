@@ -1,4 +1,4 @@
-/* Copyright (c) 2012-2013, 2015, The Linux Foundataion. All rights reserved.
+/* Copyright (c) 2012-2015, The Linux Foundataion. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted provided that the following conditions are
@@ -85,6 +85,7 @@ public:
     static void get_metadata_vendor_tag_ops(const struct camera3_device *,
                                                vendor_tag_query_ops_t* ops);
     static void dump(const struct camera3_device *, int fd);
+    static int flush(const struct camera3_device *);
     static int close_camera_device(struct hw_device_t* device);
 public:
     QCamera3HardwareInterface(int cameraId);
@@ -120,6 +121,7 @@ public:
     int processCaptureRequest(camera3_capture_request_t *request);
     void getMetadataVendorTagOps(vendor_tag_query_ops_t* ops);
     void dump(int fd);
+    int flush();
 
     int setFrameParameters(int frame_id, const camera_metadata_t *settings,
         uint32_t streamTypeMask, cam_trigger_t &aeTrigger);
@@ -161,6 +163,10 @@ private:
 
     int validateCaptureRequest(camera3_capture_request_t *request);
 
+    void handleMetadataWithLock(mm_camera_super_buf_t *metadata_buf);
+    void handleBufferWithLock(camera3_stream_buffer_t *buffer,
+        uint32_t frame_number);
+    void unblockRequestIfNecessary();
 public:
 
     bool needOnlineRotation();
@@ -168,6 +174,8 @@ public:
     int getJpegQuality();
     int calcMaxJpegSize();
     QCamera3Exif *getExifData();
+public:
+    static int kMaxInFlight;
 private:
     camera3_device_t   mCameraDevice;
     uint8_t            mCameraId;
@@ -200,9 +208,35 @@ private:
         int32_t request_id;
         List<RequestedBufferInfo> buffers;
         int blob_request;
+        int input_buffer_present;
         cam_trigger_t ae_trigger;
     } PendingRequestInfo;
-    typedef KeyedVector<camera3_stream_t *, uint32_t> PendingBuffersMap;
+    /*Data structure to store metadata information*/
+    typedef struct {
+       mm_camera_super_buf_t* meta_buf;
+       buffer_handle_t*       zsl_buf_hdl;
+       uint32_t               frame_number;
+    }MetadataBufferInfo;
+
+    // Store the Pending buffers for Flushing
+    typedef struct {
+        // Frame number pertaining to the buffer
+        uint32_t frame_number;
+        camera3_stream_t *stream;
+        // Buffer handle
+        buffer_handle_t *buffer;
+    } PendingBufferInfo;
+
+    typedef struct {
+        // Total number of buffer requests pending
+        uint32_t num_buffers;
+        // List of pending buffers
+        List<PendingBufferInfo> mPendingBufferList;
+    } PendingBuffersMap;
+
+    List<MetadataBufferInfo> mStoredMetadataList;
+
+    typedef KeyedVector<uint32_t, Vector<PendingBufferInfo> > FlushMap;
 
     List<PendingRequestInfo> mPendingRequestsList;
     PendingBuffersMap mPendingBuffersMap;
