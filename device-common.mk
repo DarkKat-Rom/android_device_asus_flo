@@ -369,6 +369,9 @@ PRODUCT_PROPERTY_OVERRIDES += \
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.recents.grid=false
 
+PRODUCT_PROPERTY_OVERRIDES += \
+    ro.bionic.ld.warning=0
+
 PRODUCT_PACKAGES += \
     android.hardware.power@1.0-impl \
     power.flo

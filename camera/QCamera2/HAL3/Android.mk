@@ -13,7 +13,7 @@ LOCAL_SRC_FILES := \
         ../util/QCameraCmdThread.cpp \
         ../util/QCameraQueue.cpp
 
-LOCAL_CFLAGS := -Wall
+LOCAL_CFLAGS := -Wall -Werror
 LOCAL_CFLAGS += -DHAS_MULTIMEDIA_HINTS
 
 LOCAL_C_INCLUDES := \
@@ -44,5 +44,3 @@ LOCAL_MODULE := camera.$(TARGET_DEVICE)
 LOCAL_MODULE_TAGS := optional
 
 include $(BUILD_SHARED_LIBRARY)
-
-#include $(LOCAL_PATH)/test/Android.mk
